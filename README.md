@@ -28,6 +28,14 @@ jdbc:oracle: matches the literal string "jdbc:oracle:".
 [^:]+: matches one or more characters that are not a colon, followed by a colon (matches the hostname).
 [0-9]+ matches one or more digits (matches the port number).
 /(?:[A-Za-z0-9_\-]+) matches a forward slash followed by the schema name, which can contain alphanumeric characters, underscores, and hyphens.
+
+Context ctx = new InitialContext();
+Subject subject = (Subject) ctx.lookup("j2cAuthenticationAlias");
+PasswordCredential credential = (PasswordCredential) subject.getPrivateCredentials().iterator().next();
+
+// Set the actual password
+String actualPassword = "myActualPassword";
+credential.setPassword(actualPassword);
 .* matches any character (except newline) zero or more times.
 You can use this modified regex in your database WHERE clause to filter out rows based on the presence of Oracle JDBC URLs with the specified port and schema.
 
