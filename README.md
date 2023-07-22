@@ -45,3 +45,13 @@ sql
 Copy code
 SELECT * FROM my_table WHERE url_column REGEXP_LIKE(url_column, '.*jdbc:oracle:(?:thin|oci|kprb):[^:]+:1521/(?:hr).*');
 Adjust the table and column names, port number, and schema name according to your specific requirements.
+
+
+
+
+
+keytool -importkeystore -srckeystore your_keystore.jks -destkeystore intermediate.p12 -srcstoretype JKS -deststoretype PKCS12
+openssl pkcs12 -in intermediate.p12 -clcerts -nokeys -out certificate.crt
+openssl pkcs12 -in intermediate.p12 -nocerts -nodes -out privatekey.pem
+
+
