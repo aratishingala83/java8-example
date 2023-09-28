@@ -15,43 +15,58 @@ This module contains articles about Java 8 core features
 - [[More -->]](/core-java-modules/core-java-8-2)
 
 
-If you want to check whether the Oracle JDBC URL contains a specific port and schema along with the "jdbc:oracle:" part, you can modify the regular expression as follows:
+import org.apache.http.HttpResponse;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.impl.cookie.BasicClientCookie;
+import org.apache.http.util.EntityUtils;
 
-regex
-Copy code
-.*jdbc:oracle:(?:thin|oci|kprb):[^:]+:[0-9]+/(?:[A-Za-z0-9_\-]+).*
-Explanation of the modified pattern:
+public class HttpClientWithCookies {
+    public static void main(String[] args) {
+        try {
+            // Create a HttpClient with a cookie store
+            CookieStore cookieStore = new BasicCookieStore();
+            HttpClient httpClient = new DefaultHttpClient();
+            httpClient.getParams().setParameter("http.protocol.handle-redirects", false); // Disable automatic redirects
 
-.* matches any character (except newline) zero or more times.
-jdbc:oracle: matches the literal string "jdbc:oracle:".
-(?:thin|oci|kprb): matches one of the supported Oracle JDBC URL connection types (thin, oci, kprb).
-[^:]+: matches one or more characters that are not a colon, followed by a colon (matches the hostname).
-[0-9]+ matches one or more digits (matches the port number).
-/(?:[A-Za-z0-9_\-]+) matches a forward slash followed by the schema name, which can contain alphanumeric characters, underscores, and hyphens.
+            // Attach the cookie store to the HttpClient
+            ((DefaultHttpClient) httpClient).setCookieStore(cookieStore);
 
-Context ctx = new InitialContext();
-Subject subject = (Subject) ctx.lookup("j2cAuthenticationAlias");
-PasswordCredential credential = (PasswordCredential) subject.getPrivateCredentials().iterator().next();
+            // Initial request to obtain cookies
+            HttpGet initialRequest = new HttpGet("https://example.com");
+            HttpResponse initialResponse = httpClient.execute(initialRequest);
 
-// Set the actual password
-String actualPassword = "myActualPassword";
-credential.setPassword(actualPassword);
-.* matches any character (except newline) zero or more times.
-You can use this modified regex in your database WHERE clause to filter out rows based on the presence of Oracle JDBC URLs with the specified port and schema.
+            // Extract cookies from the response
+            for (org.apache.http.cookie.Cookie cookie : cookieStore.getCookies()) {
+                System.out.println("Cookie: " + cookie.getName() + " = " + cookie.getValue());
 
-For example, if you have a table called "my_table" with a column named "url_column," and you want to retrieve rows where the "url_column" contains an Oracle JDBC URL with a specific port (e.g., 1521) and schema (e.g., "hr"), you can use the following SQL query:
+                // Optionally, you can modify the cookie if needed
+                if (cookie.getName().equals("exampleCookie")) {
+                    BasicClientCookie updatedCookie = new BasicClientCookie(cookie.getName(), "newCookieValue");
+                    updatedCookie.setDomain(cookie.getDomain());
+                    updatedCookie.setPath(cookie.getPath());
+                    cookieStore.addCookie(updatedCookie);
+                }
+            }
 
-sql
-Copy code
-SELECT * FROM my_table WHERE url_column REGEXP_LIKE(url_column, '.*jdbc:oracle:(?:thin|oci|kprb):[^:]+:1521/(?:hr).*');
-Adjust the table and column names, port number, and schema name according to your specific requirements.
+            // Create a new request and set the extracted cookies
+            HttpGet newRequest = new HttpGet("https://example.com/another-page");
 
+            // Execute the new request with the updated cookies
+            HttpResponse newResponse = httpClient.execute(newRequest);
 
+            // Handle the new response as needed
+            String responseBody = EntityUtils.toString(newResponse.getEntity());
+            System.out.println("Response: " + responseBody);
 
-
-
-keytool -importkeystore -srckeystore your_keystore.jks -destkeystore intermediate.p12 -srcstoretype JKS -deststoretype PKCS12
-openssl pkcs12 -in intermediate.p12 -clcerts -nokeys -out certificate.crt
-openssl pkcs12 -in intermediate.p12 -nocerts -nodes -out privatekey.pem
-
+            // Don't forget to close the HttpClient when done
+            httpClient.getConnectionManager().shutdown();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
 
